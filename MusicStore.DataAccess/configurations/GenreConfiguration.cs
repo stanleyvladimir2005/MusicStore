@@ -17,6 +17,15 @@ namespace MusicStore.DataAccess.configurations
                 .HasMaxLength(100);
             // .HasColumnName("T0001STR_NM")
             // builder.ToTable("T0001");
+
+            // DataAccess Seeding para crear valores iniciales
+            builder.HasData(
+                new Genre { Id = 1, Name = "Rock" },
+                new Genre { Id = 2, Name = "Pop" },
+                new Genre { Id = 3, Name = "Metal" },
+                new Genre { Id = 4, Name = "Reguea" },
+                new Genre { Id = 5, Name = "Salsa" }
+           );
         }
     }
 }
