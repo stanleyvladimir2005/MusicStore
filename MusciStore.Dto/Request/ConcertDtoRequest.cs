@@ -14,5 +14,8 @@ namespace MusciStore.Dto.Request
         public string Place { get; set; } = default!;
         public decimal UnitPrice { get; set; } 
         public int TicketsQuantity { get; set; }
+        public string? Base64Image { get; set; }
+        public string? FileName { get; set; }
+
     }
 }

@@ -1,10 +1,8 @@
 ﻿using MusciStore.Dto.Request;
 using MusciStore.Dto.Response;
 
-namespace MusicStore.Services.Interfaces
-{
-    public interface IConcertService
-    {
+namespace MusicStore.Services.Interfaces{
+    public interface IConcertService {
         Task<BaseResponseGeneric<ICollection<ConcertDtoResponse>>> ListAsync(string? filter, int page, int rows);
 
         Task<BaseResponseGeneric<ConcertSingleDtoResponse>> FindByIdAsync(int id);

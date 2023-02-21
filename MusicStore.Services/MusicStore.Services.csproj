@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.14.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\MusciStore.Dto\MusicStore.Dto.csproj" />
     <ProjectReference Include="..\MusicStore.DataAccess\MusicStore.DataAccess.csproj" />
     <ProjectReference Include="..\MusicStore.Repositories\MusicStore.Repositories.csproj" />

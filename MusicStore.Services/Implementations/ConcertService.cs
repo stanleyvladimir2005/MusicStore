@@ -5,19 +5,22 @@ using MusicStore.Entities;
 using MusicStore.Repositories;
 using MusicStore.Services.Interfaces;
 
-
 namespace MusicStore.Services.Implementations { 
     public class ConcertService : IConcertService {
+        
         private readonly IConcertRepository _concertRepository;
         private readonly ILogger<ConcertService> _logger;
+        private readonly IFileUploader _fileUploader;
 
-        public ConcertService(IConcertRepository concertRepository, ILogger<ConcertService> logger) {
+
+        public ConcertService(IConcertRepository concertRepository, ILogger<ConcertService> logger, IFileUploader fileUploader) {
             _concertRepository = concertRepository;
             _logger = logger;
+            _fileUploader = fileUploader;
         }
 
         public async Task<BaseResponseGeneric<ICollection<ConcertDtoResponse>>> ListAsync(string? filter, int page, int rows) {
-            var response = new BaseResponseGeneric<ICollection<ConcertDtoResponse>>();
+            var response = new BaseResponseGeneric<ICollection<ConcertDtoResponse>>();    
             try {
                     var concerts = await _concertRepository.ListAsync(filter, page, rows);
                     response.Data = concerts.Select(p => new ConcertDtoResponse{
@@ -29,55 +32,130 @@ namespace MusicStore.Services.Implementations {
                     Genre = p.Genre,
                     ImageUrl = p.ImageUrl,
                     UnitPrice = p.UnitPrice,
-                    TicketsQuantity = p.TicketsQuantity
+                    TicketsQuantity = p.TicketsQuantity,
+                    Place = p.Place,
+                    Status= p.Status,
                 }).ToList();
                 response.Success = true;
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 _logger.LogError(ex, "Error al listar los conciertos {message}", ex.Message);
                 response.ErrorMessage = "Error al listar los conciertos";
             }
             return response;
         }
 
-        public Task<BaseResponseGeneric<ConcertSingleDtoResponse>> FindByIdAsync(int id) {
-            throw new NotImplementedException();
+        public async Task<BaseResponseGeneric<ConcertSingleDtoResponse>> FindByIdAsync(int id) {
+            var response = new BaseResponseGeneric<ConcertSingleDtoResponse>();
+            try{
+                var concert = await _concertRepository.FindByIdAsync(id);
+
+                if (concert == null) {
+                    response.ErrorMessage = "No se encontró el concierto";
+                    return response;
+                }
+
+                response.Data = new ConcertSingleDtoResponse {
+                    Id = concert.Id,
+                    Title = concert.Title,
+                    Description = concert.Description,
+                    DateEvent = concert.DateEvent.ToString("yyyy-MM-dd"),
+                    TimeEvent = concert.DateEvent.ToString("HH:mm"),
+                    ImageUrl = concert.ImageUrl,
+                    Place = concert.Place,
+                    TicketsQuantity = concert.TicketsQuantity,
+                    UnitPrice = concert.UnitPrice,
+                    Status = concert.Status ? "Activo" : "Inactivo",
+                    GenreDtoResponse = new GenreDtoResponse {
+                        Id = concert.Genre.Id,
+                        Name = concert.Genre.Name,
+                        Status = concert.Genre.Status
+                    }
+                };
+                response.Success = true;
+            } catch (Exception ex) {
+                _logger.LogError(ex, "Error al obtener el concierto");
+                response.ErrorMessage = "Error al obtener el concierto";
+            }
+            return response;
         }
 
         public async Task<BaseResponseGeneric<int>> AddAsync(ConcertDtoRequest request) {
             var response = new BaseResponseGeneric<int>();
-
             try{
-                    var concert = new Concert{
-                    Title = request.Title,
-                    Description = request.Description,
-                    DateEvent = Convert.ToDateTime($"{request.DateEvent} {request.TimeEvent}"),
-                    GenreId = request.IdGenre,
-                    UnitPrice = request.UnitPrice,
-                    TicketsQuantity = request.TicketsQuantity,
-                    Place = request.Place,
+                 var concert = new Concert{
+                 Title = request.Title,
+                 Description = request.Description,
+                 DateEvent = Convert.ToDateTime($"{request.DateEvent} {request.TimeEvent}"),
+                 GenreId = request.IdGenre,
+                 UnitPrice = request.UnitPrice,
+                 TicketsQuantity = request.TicketsQuantity,
+                 Place = request.Place,
                 };
+                concert.ImageUrl = await _fileUploader.UploadFileAsync(request.Base64Image, request.FileName);
                 await _concertRepository.AddAsync(concert);
                 response.Data = concert.Id;
                 response.Success = true;
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 _logger.LogError(ex, "Error al agregar el concierto {message}", ex.Message);
                 response.ErrorMessage = "Error al agregar el concierto";
             }
             return response;
         }
 
-        public Task<BaseResponse> UpdateAsync(int id, ConcertDtoRequest request) {
-            throw new NotImplementedException();
+        public async Task<BaseResponse> UpdateAsync(int id, ConcertDtoRequest request) {
+            var response = new BaseResponse();
+         
+            try {
+                 var concert = await _concertRepository.FindByIdAsync(id); // Este SELECT usa el ChangeTracker
+
+                 if (concert == null) {
+                    response.ErrorMessage = "No se encontró el concierto";
+                    return response;
+                 }
+
+                 concert.Title = request.Title;
+                 concert.Description = request.Description;
+                 concert.DateEvent = Convert.ToDateTime($"{request.DateEvent} {request.TimeEvent}");
+                 concert.GenreId = request.IdGenre;
+                 concert.UnitPrice = request.UnitPrice;
+                 concert.TicketsQuantity = request.TicketsQuantity;
+                 concert.Place = request.Place;
+                if (!string.IsNullOrEmpty(request.FileName))
+                    concert.ImageUrl = await _fileUploader.UploadFileAsync(request.Base64Image, request.FileName);
+
+                await _concertRepository.UpdateAsync();
+                 response.Success = true;
+            } catch (Exception ex) {
+                 _logger.LogError(ex, "Error al actualizar el concierto {message}", ex.Message);
+                 response.ErrorMessage = "Error al actualizar el concierto";
+            }
+            return response;
         }
 
-        public Task<BaseResponse> DeleteAsync(int id){
-            throw new NotImplementedException();
+        public async Task<BaseResponse> DeleteAsync(int id){
+            var response = new BaseResponse();
+
+            try{
+                await _concertRepository.DeleteAsync(id);
+                response.Success = true;
+            } catch (Exception ex) {
+                _logger.LogError(ex, "Error al eliminar el concierto");
+                response.ErrorMessage = "Error al eliminar el concierto";
+            }
+            return response;
         }
 
-        public Task<BaseResponse> FinalizeAsync(int id) {
-            throw new NotImplementedException();
+        public async Task<BaseResponse> FinalizeAsync(int id) {   
+           var response = new BaseResponse();
+
+            try { 
+                  await _concertRepository.FinalizeAsync(id);
+                  response.Success = true;
+            }catch (Exception ex){
+                    _logger.LogError(ex, "Error al finalizar el concierto");
+                    response.ErrorMessage = "Error al finalizar el concierto";
+             }
+                return response;
+            }
         }
-    }
 }

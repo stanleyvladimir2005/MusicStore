@@ -4,8 +4,11 @@ using MusicStore.Repositories;
 using MusicStore.Services.Implementations;
 using MusicStore.Services.Interfaces;
 using MusciStore.Dto.Request;
+using MusicStore.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.Configure<AppSettings>(builder.Configuration);
 
 // Add services to the container.
 builder.Services.AddDbContext<MusicStoreDbContext>(options =>{
@@ -21,6 +24,11 @@ builder.Services.AddTransient<IGenreRepository, GenreRepository>();
 builder.Services.AddTransient<IGenreService, GenreService>();
 builder.Services.AddTransient<IConcertRepository, ConcertRepository>();
 builder.Services.AddTransient<IConcertService, ConcertService>();
+if (builder.Environment.IsDevelopment())
+    builder.Services.AddTransient<IFileUploader, FileUploader>();
+else
+    builder.Services.AddTransient<IFileUploader, AzureBlobStorageUploader>();
+
 
 var app = builder.Build();
 
@@ -58,15 +66,5 @@ app.MapDelete("api/Genres/{id:int}", async (IGenreService service, int id) =>{
     return response.Success ? Results.Ok(response) : Results.NotFound(response);
 });
 
-
-app.MapPost("api/Concerts", async (IConcertService service, ConcertDtoRequest request) => {
-    var response = await service.AddAsync(request);
-    return response.Success ? Results.Ok(response) : Results.BadRequest(response);
-});
-
-app.MapGet("api/Concerts", async (IConcertService service, string? filter, int page, int rows) => { 
-    var response = await service.ListAsync(filter, page, rows);
-    return response.Success ? Results.Ok(response) : Results.NotFound(response);
-});
 
 app.Run();
