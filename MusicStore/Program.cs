@@ -50,7 +50,6 @@ app.MapGet("api/Genres/{id:int}", async (IGenreService service, int id) =>{
 });
 
 app.MapPost("api/Genres", async (IGenreService service, GenreDtoRequest request) => {
-    
     var response = await service.AddAsync(request);
     return response.Success ? Results.Ok(response) : Results.BadRequest(response);
 });
